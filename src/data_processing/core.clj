@@ -9,22 +9,17 @@
   (-> (slurp file-path)
       (json/parse-string csk/->kebab-case-keyword)))
 
-
-(defn- append-to-file
-  [file-name content]
-  (spit file-name content :append :true))
-
 (defn- write-to-file-csv
   [content file-name]
   (cond
     (map? content) (as-> (vals content) r
                          (str/join "," r)
                          (str r "\n")
-                         (append-to-file file-name r))
+                         (spit file-name r :append :true))
     (or (vector? content)
         (seq? content)) (->> content
                              (run! #(write-to-file-csv % file-name)))
-    :default (append-to-file file-name (str content "\n"))))
+    :default (spit file-name (str content "\n") :append :true)))
 
 (defn- write-to-file-json
   [map file-name]
