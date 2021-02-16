@@ -38,7 +38,10 @@
         p/group-by-brand
         (write-to-file-json "third.json"))
     (-> (p/unique-images json)
-        (write-to-file-csv "fourth.csv"))))
+        (write-to-file-csv "fourth.csv"))
+    (-> (get-in json [:mods :list-items])
+        (p/maximise-products 250)
+        (write-to-file-csv "fifth.csv"))))
 
 (comment
   (-> (read-json "/Users/ashwinbhaskar/Downloads/lipstick.json")
@@ -55,4 +58,8 @@
       (write-to-file-json "third.json"))
   (-> (read-json "/Users/ashwinbhaskar/Downloads/lipstick.json")
       p/unique-images
-      (write-to-file-csv "fourth.csv")))
+      (write-to-file-csv "fourth.csv"))
+  (-> (read-json "lipstick.json")
+      (get-in [:mods :list-items])
+      (p/maximise-products 250)
+      (write-to-file-csv "fifth.csv")))

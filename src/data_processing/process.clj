@@ -50,3 +50,27 @@
        (remove nil?)
        (map #(str/split % #"/"))
        (map last)))
+
+(defn maximise-products
+  [list-items budget]
+  (let [sparse-list (->> list-items
+                         (map #(select-keys % [:brand-name :item-id :price]))
+                         (map (fn [{price :price :as m}]
+                                (assoc m :price (Double/parseDouble price)))))
+        maximise    (fn m [[{price :price :as first} & rest] money product-list]
+                      (cond
+                        (nil? first) product-list
+                        (> price money) (m rest money product-list)
+                        :default (let [with-first    (m rest (- money price) (conj product-list first))
+                                       without-first (m rest money product-list)]
+                                   (if (> (count with-first) (count without-first))
+                                     with-first
+                                     without-first))))]
+    (maximise sparse-list budget [])))
+
+
+(comment
+  (-> (slurp "lipstick.json")
+      (cheshire.core/parse-string camel-snake-kebab.core/->kebab-case-keyword)
+      (get-in [:mods :list-items])
+      (maximise-products 250)))
