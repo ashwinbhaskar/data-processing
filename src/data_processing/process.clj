@@ -57,15 +57,27 @@
                          (map #(select-keys % [:brand-name :item-id :price]))
                          (map (fn [{price :price :as m}]
                                 (assoc m :price (Double/parseDouble price)))))
-        maximise    (fn m [[{price :price :as first} & rest] money product-list]
+        cache       (atom {})
+        maximise    (fn m [[{price :price brand-name :brand-name :as first} & rest :as items] money product-list]
                       (cond
                         (nil? first) product-list
                         (> price money) (m rest money product-list)
-                        :default (let [with-first    (m rest (- money price) (conj product-list first))
-                                       without-first (m rest money product-list)]
-                                   (if (> (count with-first) (count without-first))
-                                     with-first
-                                     without-first))))]
+                        :default (or (get @cache [items money])
+                                     (let [{existing-price :price :as product-with-brand-name} (->> product-list
+                                                                                                    (some (fn [{bn :brand-name :as item}]
+                                                                                                            (when (= bn brand-name)
+                                                                                                              item))))
+                                           with-first    (if product-with-brand-name
+                                                           (m rest (+ (- money price) existing-price) (conj (remove #(= product-with-brand-name %) product-list) first))
+                                                           (m rest (- money price) (conj product-list first)))
+                                           without-first (m rest money product-list)]
+                                       (if (> (count with-first) (count without-first))
+                                         (do
+                                           (swap! cache #(assoc % [items money] with-first))
+                                           with-first)
+                                         (do
+                                           (swap! cache #(assoc % [items money] without-first))
+                                           without-first))))))]
     (maximise sparse-list budget [])))
 
 
